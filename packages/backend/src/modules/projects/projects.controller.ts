@@ -43,8 +43,8 @@ export class ProjectsController {
 
   @Get(':id')
   @RequireProjectPermission('project', 'read')
-  async findOne(@Param('id') id: string) {
-    return this.projectsService.findOne(id, id);
+  async findOne(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.projectsService.findOne(id, user.id);
   }
 
   @Patch(':id')
