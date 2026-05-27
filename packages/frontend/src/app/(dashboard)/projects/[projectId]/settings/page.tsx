@@ -47,6 +47,7 @@ export default function ProjectSettingsPage() {
       apiClient.patch(`/projects/${projectId}`, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['project', projectId] });
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
       success('Settings saved', 'Project settings have been updated');
     },
     onError: () => {
@@ -59,6 +60,9 @@ export default function ProjectSettingsPage() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['projects'] });
       router.push('/projects');
+    },
+    onError: (err: Error) => {
+      toastError('Delete failed', err.message || 'Could not delete project');
     },
   });
 

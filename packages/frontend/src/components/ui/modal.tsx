@@ -3,6 +3,7 @@
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 import { X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 
 interface ModalProps {
   open: boolean;
@@ -45,15 +46,15 @@ export function Modal({ open, onClose, title, description, children, className, 
     xl: 'max-w-xl',
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+  const content = (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center">
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
       />
       <div
         className={cn(
-          'relative z-10 w-full mx-4 bg-background rounded-lg shadow-xl border animate-scale-in',
+          'relative z-10 w-full mx-4 bg-background rounded-lg shadow-xl border animate-scale-in max-h-[90vh] overflow-y-auto',
           sizeClasses[size],
           className
         )}
@@ -86,4 +87,7 @@ export function Modal({ open, onClose, title, description, children, className, 
       </div>
     </div>
   );
+
+  if (typeof window === 'undefined') return null;
+  return createPortal(content, document.body);
 }

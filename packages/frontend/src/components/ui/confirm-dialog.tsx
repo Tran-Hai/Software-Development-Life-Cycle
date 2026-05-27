@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import React from 'react';
+import { createPortal } from 'react-dom';
 import { cn } from '@/lib/utils';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { Button } from './button';
@@ -30,10 +32,10 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   if (!open) return null;
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+  const content = (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center">
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm animate-fade-in"
         onClick={onClose}
       />
       <div className="relative z-10 w-full max-w-sm mx-4 bg-background rounded-lg shadow-xl border animate-scale-in p-6">
@@ -67,6 +69,9 @@ export function ConfirmDialog({
       </div>
     </div>
   );
+
+  if (typeof window === 'undefined') return null;
+  return createPortal(content, document.body);
 }
 
 export function useConfirmDialog() {
