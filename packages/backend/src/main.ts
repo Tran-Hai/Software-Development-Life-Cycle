@@ -6,6 +6,7 @@ import { GlobalExceptionFilter } from './common/filters/global-exception.filter'
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
 import { TransformInterceptor } from './common/interceptors/transform.interceptor';
 import { TimeoutInterceptor } from './common/interceptors/timeout.interceptor';
+import { PrismaService } from './database/prisma/prisma.service';
 import helmet from 'helmet';
 import * as compression from 'compression';
 
@@ -16,6 +17,18 @@ async function bootstrap() {
   const port = configService.get<number>('PORT') || 3001;
   const frontendUrl = configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
   const nodeEnv = configService.get<string>('NODE_ENV') || 'development';
+
+  // Auto-run database push on startup
+  if (nodeEnv === 'production') {
+    const prisma = app.get(PrismaService);
+    try {
+      await prisma.$executeRawUnsafe('SELECT 1');
+      console.log('✅ Database connected');
+    } catch (err) {
+      console.error('❌ Database connection failed:', err);
+      process.exit(1);
+    }
+  }
 
   app.setGlobalPrefix('api/v1');
 
@@ -29,23 +42,18 @@ async function bootstrap() {
   );
   app.useGlobalInterceptors(new TransformInterceptor(), new LoggingInterceptor(), new TimeoutInterceptor());
 
-  app.use(helmet());
+  app.use(helmet({ contentSecurityPolicy: false }));
   app.use(compression());
 
   app.enableCors({
-    origin: frontendUrl,
+    origin: [frontendUrl, ...(nodeEnv === 'production' ? [] : ['http://localhost:3000'])],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
-  if (nodeEnv === 'development') {
-    app.enableShutdownHooks();
-  }
-
   await app.listen(port);
   console.log(`🚀 Backend running on http://localhost:${port}`);
-  console.log(`📝 API Docs: http://localhost:${port}/api/v1`);
 }
 
 bootstrap();

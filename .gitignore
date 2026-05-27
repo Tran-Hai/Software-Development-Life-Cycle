@@ -12,5 +12,5 @@ build/
 coverage/
 .cache/
 docker/data/
-Dockerfile
-docker-compose*.yml
+# Docker
+docker/data/
