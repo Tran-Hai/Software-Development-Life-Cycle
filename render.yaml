@@ -5,7 +5,7 @@ services:
     buildCommand: |
       corepack enable 2>/dev/null
       pnpm install --frozen-lockfile 2>/dev/null || npm install
-      npx prisma generate --schema=packages/backend/src/database/prisma/schema.prisma
+      pnpm prisma generate --schema=packages/backend/src/database/prisma/schema.prisma
       pnpm --filter @sdlc/backend run build
       pnpm --filter @sdlc/frontend run build
     startCommand: node packages/backend/dist/main
