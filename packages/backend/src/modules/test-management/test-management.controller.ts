@@ -58,8 +58,8 @@ export class TestSuitesController {
 
   @Delete(':id')
   @RequiredPermission('test_case', 'delete')
-  async delete(@Param('id') id: string) {
-    return this.testManagementService.deleteSuite(id);
+  async delete(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.testManagementService.deleteSuite(id, user.id);
   }
 }
 
@@ -102,8 +102,8 @@ export class TestCasesController {
 
   @Delete(':id')
   @RequiredPermission('test_case', 'delete')
-  async delete(@Param('id') id: string) {
-    return this.testManagementService.deleteCase(id);
+  async delete(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.testManagementService.deleteCase(id, user.id);
   }
 }
 
@@ -141,8 +141,8 @@ export class TestRunsController {
   }
 
   @Delete(':id')
-  async delete(@Param('id') id: string) {
-    return this.testManagementService.deleteRun(id);
+  async delete(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.testManagementService.deleteRun(id, user.id);
   }
 }
 

@@ -214,6 +214,30 @@ export class ProjectsService {
   async delete(id: string, userId: string) {
     await this.checkProjectAccess(id, userId, ['owner']);
 
+    const project = await this.prisma.project.findUnique({
+      where: { id },
+      select: { name: true, members: { select: { userId: true } } },
+    });
+
+    if (!project) {
+      throw new NotFoundException('Project not found');
+    }
+
+    const actor = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+    const actorName = actor?.fullName || 'Someone';
+
+    for (const member of project.members) {
+      if (member.userId !== userId) {
+        await this.notifications.notify({
+          userId: member.userId,
+          type: 'project',
+          title: `Project "${project.name}" was deleted by ${actorName}`,
+          entityType: 'project',
+          entityId: id,
+        });
+      }
+    }
+
     return this.prisma.project.delete({
       where: { id },
     });

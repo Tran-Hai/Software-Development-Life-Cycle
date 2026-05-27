@@ -60,8 +60,8 @@ export class SprintsController {
 
   @Delete(':id')
   @RequiredPermission('sprint', 'delete')
-  async delete(@Param('id') id: string) {
-    return this.sprintsService.delete(id);
+  async delete(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.sprintsService.delete(id, user.id);
   }
 
   @Get(':id/burndown')

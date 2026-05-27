@@ -50,7 +50,7 @@ export class EpicsController {
 
   @Delete(':id')
   @RequiredPermission('epic', 'delete')
-  async delete(@Param('id') id: string) {
-    return this.epicsService.delete(id);
+  async delete(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.epicsService.delete(id, user.id);
   }
 }

@@ -64,8 +64,8 @@ export class IssuesController {
 
   @Delete(':id')
   @RequiredPermission('issue', 'delete')
-  async delete(@Param('id') id: string) {
-    return this.issuesService.delete(id);
+  async delete(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.issuesService.delete(id, user.id);
   }
 
   @Get(':id/comments')

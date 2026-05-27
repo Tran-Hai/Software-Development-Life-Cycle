@@ -121,17 +121,27 @@ export class EpicsService {
     });
   }
 
-  async delete(id: string) {
+  async delete(id: string, userId?: string) {
     const epic = await this.prisma.epic.findUnique({ where: { id } });
     if (!epic) {
       throw new NotFoundException('Epic not found');
     }
 
-    // Unlink issues from epic before deleting
     await this.prisma.issue.updateMany({
       where: { epicId: id },
       data: { epicId: null },
     });
+
+    if (userId) {
+      const actor = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+      const actorName = actor?.fullName || 'Someone';
+      await this.notifications.notifyProject(epic.projectId, {
+        type: 'epic',
+        title: `${actorName} deleted epic "${epic.title}"`,
+        entityType: 'epic',
+        entityId: id,
+      });
+    }
 
     return this.prisma.epic.delete({ where: { id } });
   }

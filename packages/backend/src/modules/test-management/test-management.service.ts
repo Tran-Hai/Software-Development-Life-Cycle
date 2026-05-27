@@ -106,10 +106,20 @@ export class TestManagementService {
     });
   }
 
-  async deleteSuite(id: string) {
+  async deleteSuite(id: string, userId?: string) {
     const suite = await this.prisma.testSuite.findUnique({ where: { id } });
     if (!suite) {
       throw new NotFoundException('Test suite not found');
+    }
+
+    if (userId) {
+      const actor = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+      await this.notifications.notifyProject(suite.projectId, {
+        type: 'test_case',
+        title: `${actor?.fullName || 'Someone'} deleted test suite "${suite.name}"`,
+        entityType: 'test_suite',
+        entityId: id,
+      });
     }
 
     return this.prisma.testSuite.delete({ where: { id } });
@@ -220,10 +230,20 @@ export class TestManagementService {
     });
   }
 
-  async deleteCase(id: string) {
+  async deleteCase(id: string, userId?: string) {
     const testCase = await this.prisma.testCase.findUnique({ where: { id } });
     if (!testCase) {
       throw new NotFoundException('Test case not found');
+    }
+
+    if (userId) {
+      const actor = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+      await this.notifications.notifyProject(testCase.projectId, {
+        type: 'test_case',
+        title: `${actor?.fullName || 'Someone'} deleted test case "${testCase.title}"`,
+        entityType: 'test_case',
+        entityId: id,
+      });
     }
 
     return this.prisma.testCase.delete({ where: { id } });
@@ -392,10 +412,21 @@ export class TestManagementService {
     return updated;
   }
 
-  async deleteRun(id: string) {
+  async deleteRun(id: string, userId?: string) {
     const testRun = await this.prisma.testRun.findUnique({ where: { id } });
     if (!testRun) {
       throw new NotFoundException('Test run not found');
+    }
+
+    if (userId) {
+      const actor = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+      const suite = await this.prisma.testSuite.findUnique({ where: { id: testRun.testSuiteId }, select: { projectId: true } });
+      await this.notifications.notifyProject(suite?.projectId || '', {
+        type: 'test_run',
+        title: `${actor?.fullName || 'Someone'} deleted test run "${testRun.name}"`,
+        entityType: 'test_run',
+        entityId: id,
+      });
     }
 
     return this.prisma.testRun.delete({ where: { id } });

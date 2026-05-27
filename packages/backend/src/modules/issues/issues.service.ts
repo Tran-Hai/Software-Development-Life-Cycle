@@ -274,13 +274,31 @@ export class IssuesService {
     return issue;
   }
 
-  async delete(id: string) {
+  async delete(id: string, userId?: string) {
     const issue = await this.prisma.issue.findUnique({
       where: { id },
     });
 
     if (!issue) {
       throw new NotFoundException('Issue not found');
+    }
+
+    if (userId) {
+      const actor = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+      const actorName = actor?.fullName || 'Someone';
+      const notifyUsers = new Set<string>();
+      if (issue.assigneeId && issue.assigneeId !== userId) notifyUsers.add(issue.assigneeId);
+      if (issue.reporterId && issue.reporterId !== userId) notifyUsers.add(issue.reporterId);
+      for (const targetId of notifyUsers) {
+        await this.notifications.notify({
+          userId: targetId,
+          type: 'issue',
+          title: `${actorName} deleted ${issue.issueNumber}`,
+          body: issue.title,
+          entityType: 'issue',
+          entityId: id,
+        });
+      }
     }
 
     return this.prisma.issue.delete({

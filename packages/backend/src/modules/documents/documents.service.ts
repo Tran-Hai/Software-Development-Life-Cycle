@@ -177,13 +177,24 @@ export class DocumentsService {
     return updatedDoc;
   }
 
-  async delete(id: string) {
+  async delete(id: string, userId?: string) {
     const document = await this.prisma.document.findUnique({
       where: { id },
     });
 
     if (!document) {
       throw new NotFoundException('Document not found');
+    }
+
+    if (userId) {
+      const actor = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+      const actorName = actor?.fullName || 'Someone';
+      await this.notifications.notifyProject(document.projectId, {
+        type: 'document',
+        title: `${actorName} deleted document "${document.title}"`,
+        entityType: 'document',
+        entityId: id,
+      });
     }
 
     return this.prisma.document.delete({

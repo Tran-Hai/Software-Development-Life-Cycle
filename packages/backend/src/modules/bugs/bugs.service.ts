@@ -219,10 +219,33 @@ export class BugsService {
     return updated;
   }
 
-  async delete(id: string) {
+  async delete(id: string, userId?: string) {
     const bug = await this.prisma.bug.findUnique({ where: { id } });
     if (!bug) {
       throw new NotFoundException('Bug not found');
+    }
+
+    if (userId) {
+      const actor = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+      const actorName = actor?.fullName || 'Someone';
+      if (bug.assigneeId && bug.assigneeId !== userId) {
+        await this.notifications.notify({
+          userId: bug.assigneeId,
+          type: 'bug',
+          title: `${actorName} deleted bug "${bug.title}"`,
+          entityType: 'bug',
+          entityId: id,
+        });
+      }
+      if (bug.reporterId && bug.reporterId !== userId && bug.reporterId !== bug.assigneeId) {
+        await this.notifications.notify({
+          userId: bug.reporterId,
+          type: 'bug',
+          title: `${actorName} deleted bug "${bug.title}"`,
+          entityType: 'bug',
+          entityId: id,
+        });
+      }
     }
 
     return this.prisma.bug.delete({ where: { id } });

@@ -62,8 +62,8 @@ export class DocumentsController {
 
   @Delete(':id')
   @RequiredPermission('document', 'delete')
-  async delete(@Param('id') id: string) {
-    return this.documentsService.delete(id);
+  async delete(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.documentsService.delete(id, user.id);
   }
 
   @Get(':id/versions')

@@ -220,7 +220,7 @@ export class SprintsService {
     return sprint;
   }
 
-  async delete(id: string) {
+  async delete(id: string, userId?: string) {
     const sprint = await this.prisma.sprint.findUnique({
       where: { id },
     });
@@ -237,6 +237,17 @@ export class SprintsService {
       throw new BadRequestException(
         'Cannot delete sprint with issues. Move or remove issues first.',
       );
+    }
+
+    if (userId) {
+      const actor = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+      const actorName = actor?.fullName || 'Someone';
+      await this.notifications.notifyProject(sprint.projectId, {
+        type: 'sprint',
+        title: `${actorName} deleted sprint "${sprint.name}"`,
+        entityType: 'sprint',
+        entityId: id,
+      });
     }
 
     return this.prisma.sprint.delete({

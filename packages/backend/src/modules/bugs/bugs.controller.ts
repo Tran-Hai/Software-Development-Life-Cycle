@@ -66,7 +66,7 @@ export class BugsController {
 
   @Delete(':id')
   @RequiredPermission('bug', 'delete')
-  async delete(@Param('id') id: string) {
-    return this.bugsService.delete(id);
+  async delete(@Param('id') id: string, @CurrentUser() user: any) {
+    return this.bugsService.delete(id, user.id);
   }
 }
