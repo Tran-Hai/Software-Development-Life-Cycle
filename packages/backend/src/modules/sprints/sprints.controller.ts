@@ -11,6 +11,7 @@ import {
 import { SprintsService } from './sprints.service';
 import { CreateSprintDto, UpdateSprintDto, UpdateSprintStatusDto } from './dto/sprint.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @Controller('projects/:projectId/sprints')
 @UseGuards(JwtAuthGuard)
@@ -26,8 +27,9 @@ export class SprintsController {
   async create(
     @Param('projectId') projectId: string,
     @Body() dto: CreateSprintDto,
+    @CurrentUser() user: any,
   ) {
-    return this.sprintsService.create(projectId, dto);
+    return this.sprintsService.create(projectId, user.id, dto);
   }
 
   @Get(':id')
@@ -44,8 +46,9 @@ export class SprintsController {
   async updateStatus(
     @Param('id') id: string,
     @Body() dto: UpdateSprintStatusDto,
+    @CurrentUser() user: any,
   ) {
-    return this.sprintsService.updateStatus(id, dto);
+    return this.sprintsService.updateStatus(id, user.id, dto);
   }
 
   @Delete(':id')

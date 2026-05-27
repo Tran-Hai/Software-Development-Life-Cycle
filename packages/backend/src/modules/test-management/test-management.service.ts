@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   CreateTestSuiteDto,
   UpdateTestSuiteDto,
@@ -12,7 +13,10 @@ import {
 
 @Injectable()
 export class TestManagementService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   // ===== TEST SUITES =====
 
@@ -319,11 +323,6 @@ export class TestManagementService {
   async createRun(projectId: string, testSuiteId: string, executorId: string, dto: CreateTestRunDto) {
     const testSuite = await this.prisma.testSuite.findUnique({
       where: { id: testSuiteId },
-      include: {
-        testCases: {
-          select: { id: true },
-        },
-      },
     });
 
     if (!testSuite) {
@@ -349,10 +348,18 @@ export class TestManagementService {
       },
     });
 
+    const actor = await this.prisma.user.findUnique({ where: { id: executorId }, select: { fullName: true } });
+    await this.notifications.notifyProject(projectId || testSuite.projectId, {
+      type: 'test_run',
+      title: `${actor?.fullName || 'Someone'} created test run "${testRun.name}"`,
+      entityType: 'test_run',
+      entityId: testRun.id,
+    });
+
     return testRun;
   }
 
-  async updateRunStatus(id: string, dto: UpdateTestRunStatusDto) {
+  async updateRunStatus(id: string, dto: UpdateTestRunStatusDto, userId?: string) {
     const testRun = await this.prisma.testRun.findUnique({ where: { id } });
     if (!testRun) {
       throw new NotFoundException('Test run not found');
@@ -366,10 +373,23 @@ export class TestManagementService {
       data.completedAt = new Date();
     }
 
-    return this.prisma.testRun.update({
+    const updated = await this.prisma.testRun.update({
       where: { id },
       data,
     });
+
+    if (userId && dto.status !== testRun.status) {
+      const actor = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+      const suite = await this.prisma.testSuite.findUnique({ where: { id: testRun.testSuiteId }, select: { projectId: true } });
+      await this.notifications.notifyProject(suite?.projectId || '', {
+        type: 'test_run',
+        title: `${actor?.fullName || 'Someone'} updated test run "${testRun.name}" to ${dto.status}`,
+        entityType: 'test_run',
+        entityId: id,
+      });
+    }
+
+    return updated;
   }
 
   async deleteRun(id: string) {

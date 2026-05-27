@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateEpicDto, UpdateEpicDto } from './dto/epic.dto';
 
 @Injectable()
 export class EpicsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async findAll(projectId: string) {
     const epics = await this.prisma.epic.findMany({
@@ -83,8 +87,8 @@ export class EpicsService {
     };
   }
 
-  async create(projectId: string, dto: CreateEpicDto) {
-    return this.prisma.epic.create({
+  async create(projectId: string, userId: string, dto: CreateEpicDto) {
+    const epic = await this.prisma.epic.create({
       data: {
         projectId,
         title: dto.title,
@@ -93,6 +97,16 @@ export class EpicsService {
         status: dto.status || 'backlog',
       },
     });
+
+    const actor = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+    await this.notifications.notifyProject(projectId, {
+      type: 'epic',
+      title: `${actor?.fullName || 'Someone'} created epic "${epic.title}"`,
+      entityType: 'epic',
+      entityId: epic.id,
+    });
+
+    return epic;
   }
 
   async update(id: string, dto: UpdateEpicDto) {

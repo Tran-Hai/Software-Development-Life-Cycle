@@ -5,11 +5,15 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
 
 @Injectable()
 export class ProjectsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async create(organizationId: string | undefined, userId: string, dto: CreateProjectDto) {
     let orgId = organizationId;
@@ -111,6 +115,14 @@ export class ProjectsService {
       });
     }
 
+    await this.notifications.notify({
+      userId,
+      type: 'project',
+      title: `Project "${project.name}" created successfully`,
+      entityType: 'project',
+      entityId: project.id,
+    });
+
     return project;
   }
 
@@ -183,10 +195,20 @@ export class ProjectsService {
   async update(id: string, userId: string, dto: UpdateProjectDto) {
     await this.checkProjectAccess(id, userId);
 
-    return this.prisma.project.update({
+    const project = await this.prisma.project.update({
       where: { id },
       data: dto,
     });
+
+    const actor = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+    await this.notifications.notifyProject(id, {
+      type: 'project',
+      title: `${actor?.fullName || 'Someone'} updated project settings`,
+      entityType: 'project',
+      entityId: id,
+    });
+
+    return project;
   }
 
   async delete(id: string, userId: string) {

@@ -123,8 +123,9 @@ export class TestRunsController {
   async updateStatus(
     @Param('id') id: string,
     @Body() dto: UpdateTestRunStatusDto,
+    @CurrentUser() user: any,
   ) {
-    return this.testManagementService.updateRunStatus(id, dto);
+    return this.testManagementService.updateRunStatus(id, dto, user.id);
   }
 
   @Delete(':id')

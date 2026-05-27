@@ -11,6 +11,7 @@ import {
 import { EpicsService } from './epics.service';
 import { CreateEpicDto, UpdateEpicDto } from './dto/epic.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @Controller('projects/:projectId/epics')
 @UseGuards(JwtAuthGuard)
@@ -26,8 +27,9 @@ export class EpicsController {
   async create(
     @Param('projectId') projectId: string,
     @Body() dto: CreateEpicDto,
+    @CurrentUser() user: any,
   ) {
-    return this.epicsService.create(projectId, dto);
+    return this.epicsService.create(projectId, user.id, dto);
   }
 
   @Get(':id')

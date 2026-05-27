@@ -1,5 +1,6 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   CreateIssueDto,
   UpdateIssueDto,
@@ -8,7 +9,10 @@ import {
 
 @Injectable()
 export class IssuesService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async findAll(projectId: string, filters?: { status?: string; assigneeId?: string; priority?: string }) {
     return this.prisma.issue.findMany({
@@ -166,6 +170,20 @@ export class IssuesService {
       status: issue.status,
     });
 
+    const actor = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+    const actorName = actor?.fullName || 'Someone';
+
+    if (dto.assigneeId && dto.assigneeId !== userId) {
+      await this.notifications.notify({
+        userId: dto.assigneeId,
+        type: 'assignment',
+        title: `${actorName} assigned you to ${issue.issueNumber}`,
+        body: issue.title,
+        entityType: 'issue',
+        entityId: issue.id,
+      });
+    }
+
     return issue;
   }
 
@@ -227,6 +245,32 @@ export class IssuesService {
       await this.logActivity(id, userId, 'updated', oldValues, newValues);
     }
 
+    const actor = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+    const actorName = actor?.fullName || 'Someone';
+
+    if (dto.assigneeId && dto.assigneeId !== existingIssue.assigneeId && dto.assigneeId !== userId) {
+      await this.notifications.notify({
+        userId: dto.assigneeId,
+        type: 'assignment',
+        title: `${actorName} assigned you to ${existingIssue.issueNumber}`,
+        body: existingIssue.title,
+        entityType: 'issue',
+        entityId: id,
+      });
+    }
+
+    if (dto.status && dto.status !== existingIssue.status) {
+      if (existingIssue.assigneeId && existingIssue.assigneeId !== userId) {
+        await this.notifications.notify({
+          userId: existingIssue.assigneeId,
+          type: 'status_change',
+          title: `${actorName} changed ${existingIssue.issueNumber} to ${dto.status}`,
+          entityType: 'issue',
+          entityId: id,
+        });
+      }
+    }
+
     return issue;
   }
 
@@ -275,6 +319,24 @@ export class IssuesService {
     await this.logActivity(issueId, userId, 'commented', null, {
       commentId: comment.id,
     });
+
+    const actor = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+    const actorName = actor?.fullName || 'Someone';
+
+    const notifyUsers = new Set<string>();
+    if (issue.assigneeId && issue.assigneeId !== userId) notifyUsers.add(issue.assigneeId);
+    if (issue.reporterId && issue.reporterId !== userId) notifyUsers.add(issue.reporterId);
+
+    for (const targetId of notifyUsers) {
+      await this.notifications.notify({
+        userId: targetId,
+        type: 'comment',
+        title: `${actorName} commented on ${issue.issueNumber}`,
+        body: dto.content?.slice(0, 100),
+        entityType: 'issue',
+        entityId: issueId,
+      });
+    }
 
     return comment;
   }

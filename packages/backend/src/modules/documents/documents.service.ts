@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   CreateDocumentDto,
   UpdateDocumentDto,
@@ -9,7 +10,10 @@ import {
 
 @Injectable()
 export class DocumentsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async findAll(projectId: string) {
     return this.prisma.document.findMany({
@@ -84,7 +88,7 @@ export class DocumentsService {
   }
 
   async create(projectId: string, authorId: string, dto: CreateDocumentDto) {
-    return this.prisma.document.create({
+    const doc = await this.prisma.document.create({
       data: {
         projectId,
         authorId,
@@ -106,6 +110,19 @@ export class DocumentsService {
         },
       },
     });
+
+    if (dto.status === 'published') {
+      const actor = await this.prisma.user.findUnique({ where: { id: authorId }, select: { fullName: true } });
+      const actorName = actor?.fullName || 'Someone';
+      await this.notifications.notifyProject(projectId, {
+        type: 'document',
+        title: `${actorName} created document "${doc.title}"`,
+        entityType: 'document',
+        entityId: doc.id,
+      });
+    }
+
+    return doc;
   }
 
   async update(id: string, userId: string, dto: UpdateDocumentDto) {
@@ -222,7 +239,7 @@ export class DocumentsService {
       throw new NotFoundException('Document not found');
     }
 
-    return this.prisma.documentComment.create({
+    const comment = await this.prisma.documentComment.create({
       data: {
         documentId,
         authorId,
@@ -230,5 +247,19 @@ export class DocumentsService {
         parentId: dto.parentId,
       },
     });
+
+    if (document.authorId !== authorId) {
+      const actor = await this.prisma.user.findUnique({ where: { id: authorId }, select: { fullName: true } });
+      await this.notifications.notify({
+        userId: document.authorId,
+        type: 'comment',
+        title: `${actor?.fullName || 'Someone'} commented on "${document.title}"`,
+        body: dto.content?.slice(0, 100),
+        entityType: 'document',
+        entityId: documentId,
+      });
+    }
+
+    return comment;
   }
 }

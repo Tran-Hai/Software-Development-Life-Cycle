@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateBugDto, UpdateBugDto } from './dto/bug.dto';
 
 @Injectable()
 export class BugsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async findAll(projectId: string, filters?: { status?: string; severity?: string; assigneeId?: string }) {
     return this.prisma.bug.findMany({
@@ -122,7 +126,7 @@ export class BugsService {
   }
 
   async create(projectId: string, reporterId: string, dto: CreateBugDto) {
-    return this.prisma.bug.create({
+    const bug = await this.prisma.bug.create({
       data: {
         projectId,
         reporterId,
@@ -146,9 +150,25 @@ export class BugsService {
         },
       },
     });
+
+    const actor = await this.prisma.user.findUnique({ where: { id: reporterId }, select: { fullName: true } });
+    const actorName = actor?.fullName || 'Someone';
+
+    if (dto.assigneeId && dto.assigneeId !== reporterId) {
+      await this.notifications.notify({
+        userId: dto.assigneeId,
+        type: 'assignment',
+        title: `${actorName} assigned bug to you`,
+        body: bug.title,
+        entityType: 'bug',
+        entityId: bug.id,
+      });
+    }
+
+    return bug;
   }
 
-  async update(id: string, dto: UpdateBugDto) {
+  async update(id: string, dto: UpdateBugDto, userId?: string) {
     const bug = await this.prisma.bug.findUnique({ where: { id } });
     if (!bug) {
       throw new NotFoundException('Bug not found');
@@ -161,13 +181,42 @@ export class BugsService {
           ? null
           : undefined;
 
-    return this.prisma.bug.update({
+    const updated = await this.prisma.bug.update({
       where: { id },
       data: {
         ...dto,
         resolvedAt,
       },
     });
+
+    if (userId) {
+      const actor = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+      const actorName = actor?.fullName || 'Someone';
+
+      if (dto.assigneeId && dto.assigneeId !== bug.assigneeId && dto.assigneeId !== userId) {
+        await this.notifications.notify({
+          userId: dto.assigneeId,
+          type: 'assignment',
+          title: `${actorName} assigned bug to you`,
+          body: bug.title,
+          entityType: 'bug',
+          entityId: id,
+        });
+      }
+
+      if (dto.status && dto.status !== bug.status && bug.assigneeId && bug.assigneeId !== userId) {
+        await this.notifications.notify({
+          userId: bug.assigneeId,
+          type: 'status_change',
+          title: `${actorName} changed bug status to ${dto.status}`,
+          body: bug.title,
+          entityType: 'bug',
+          entityId: id,
+        });
+      }
+    }
+
+    return updated;
   }
 
   async delete(id: string) {

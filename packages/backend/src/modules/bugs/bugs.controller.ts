@@ -49,8 +49,12 @@ export class BugsController {
   }
 
   @Patch(':id')
-  async update(@Param('id') id: string, @Body() dto: UpdateBugDto) {
-    return this.bugsService.update(id, dto);
+  async update(
+    @Param('id') id: string,
+    @Body() dto: UpdateBugDto,
+    @CurrentUser() user: any,
+  ) {
+    return this.bugsService.update(id, dto, user.id);
   }
 
   @Delete(':id')

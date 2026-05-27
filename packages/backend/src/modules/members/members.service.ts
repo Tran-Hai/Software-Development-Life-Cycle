@@ -5,11 +5,15 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { AddMemberDto, UpdateMemberDto } from './dto/member.dto';
 
 @Injectable()
 export class MembersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async addMember(projectId: string, dto: AddMemberDto, actorId: string) {
     await this.checkPermission(projectId, actorId, ['owner']);
@@ -51,7 +55,7 @@ export class MembersService {
       throw new NotFoundException('Invalid role');
     }
 
-    return this.prisma.member.create({
+    const member = await this.prisma.member.create({
       data: {
         userId: targetUserId,
         projectId,
@@ -75,6 +79,20 @@ export class MembersService {
         },
       },
     });
+
+    const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { name: true } });
+
+    if (targetUserId !== actorId) {
+      await this.notifications.notify({
+        userId: targetUserId,
+        type: 'member',
+        title: `You were added to project "${project?.name || projectId}"`,
+        entityType: 'project',
+        entityId: projectId,
+      });
+    }
+
+    return member;
   }
 
   async findAll(projectId: string) {
@@ -145,15 +163,29 @@ export class MembersService {
 
     const member = await this.prisma.member.findUnique({
       where: { id: memberId },
+      include: {
+        user: { select: { fullName: true } },
+      },
     });
 
     if (!member || member.projectId !== projectId) {
       throw new NotFoundException('Member not found');
     }
 
-    return this.prisma.member.delete({
+    await this.prisma.member.delete({
       where: { id: memberId },
     });
+
+    if (member.userId !== actorId) {
+      const project = await this.prisma.project.findUnique({ where: { id: projectId }, select: { name: true } });
+      await this.notifications.notify({
+        userId: member.userId,
+        type: 'member',
+        title: `You were removed from project "${project?.name || projectId}"`,
+        entityType: 'project',
+        entityId: projectId,
+      });
+    }
   }
 
   private async checkPermission(

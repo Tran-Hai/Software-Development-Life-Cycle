@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import { CreateSprintDto, UpdateSprintDto, UpdateSprintStatusDto } from './dto/sprint.dto';
 
 @Injectable()
 export class SprintsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   async findAll(projectId: string) {
     const sprints = await this.prisma.sprint.findMany({
@@ -90,7 +94,7 @@ export class SprintsService {
     return sprint;
   }
 
-  async create(projectId: string, dto: CreateSprintDto) {
+  async create(projectId: string, userId: string, dto: CreateSprintDto) {
     const project = await this.prisma.project.findUnique({
       where: { id: projectId },
     });
@@ -106,7 +110,7 @@ export class SprintsService {
 
     const position = (maxPosition._max.position || 0) + 1;
 
-    return this.prisma.sprint.create({
+    const sprint = await this.prisma.sprint.create({
       data: {
         projectId,
         name: dto.name,
@@ -124,6 +128,18 @@ export class SprintsService {
         },
       },
     });
+
+    const actor = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+    const actorName = actor?.fullName || 'Someone';
+
+    await this.notifications.notifyProject(projectId, {
+      type: 'sprint',
+      title: `${actorName} created sprint "${sprint.name}"`,
+      entityType: 'sprint',
+      entityId: sprint.id,
+    });
+
+    return sprint;
   }
 
   async update(id: string, dto: UpdateSprintDto) {
@@ -152,7 +168,7 @@ export class SprintsService {
     });
   }
 
-  async updateStatus(id: string, dto: UpdateSprintStatusDto) {
+  async updateStatus(id: string, userId: string, dto: UpdateSprintStatusDto) {
     const existingSprint = await this.prisma.sprint.findUnique({
       where: { id },
     });
@@ -177,7 +193,7 @@ export class SprintsService {
       }
     }
 
-    return this.prisma.sprint.update({
+    const sprint = await this.prisma.sprint.update({
       where: { id },
       data: { status: dto.status },
       include: {
@@ -188,6 +204,20 @@ export class SprintsService {
         },
       },
     });
+
+    if (dto.status !== existingSprint.status) {
+      const actor = await this.prisma.user.findUnique({ where: { id: userId }, select: { fullName: true } });
+      const actorName = actor?.fullName || 'Someone';
+
+      await this.notifications.notifyProject(existingSprint.projectId, {
+        type: 'sprint',
+        title: `${actorName} ${dto.status === 'active' ? 'started' : dto.status === 'completed' ? 'completed' : 'updated'} sprint "${sprint.name}"`,
+        entityType: 'sprint',
+        entityId: id,
+      });
+    }
+
+    return sprint;
   }
 
   async delete(id: string) {
