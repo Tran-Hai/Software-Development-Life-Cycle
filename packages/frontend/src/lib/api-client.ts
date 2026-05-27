@@ -7,6 +7,12 @@ const apiClient = axios.create({
   },
 });
 
+let globalErrorHandler: ((message: string) => void) | null = null;
+
+export function setGlobalErrorHandler(handler: ((message: string) => void) | null) {
+  globalErrorHandler = handler;
+}
+
 apiClient.interceptors.request.use((config) => {
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
   if (token) {
@@ -51,6 +57,8 @@ apiClient.interceptors.response.use(
 
     const message =
       error.response?.data?.error?.message || error.message || 'Something went wrong';
+
+    globalErrorHandler?.(message);
 
     return Promise.reject(new Error(message));
   },
