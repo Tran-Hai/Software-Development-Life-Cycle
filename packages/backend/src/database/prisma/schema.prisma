@@ -200,7 +200,7 @@ model Document {
   updatedAt   DateTime @updatedAt @map("updated_at")
   publishedAt DateTime? @map("published_at")
 
-  project  Project          @relation(fields: [projectId], references: [id])
+  project  Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
   author   User             @relation("DocumentAuthor", fields: [authorId], references: [id])
   parent   Document?        @relation("DocumentHierarchy", fields: [parentId], references: [id])
   children Document[]       @relation("DocumentHierarchy")
@@ -256,7 +256,7 @@ model Sprint {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  project Project @relation(fields: [projectId], references: [id])
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   issues  Issue[]
   testRuns TestRun[]
 
@@ -275,7 +275,7 @@ model Epic {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  project Project @relation(fields: [projectId], references: [id])
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   issues  Issue[]
 
   @@index([projectId])
@@ -291,7 +291,7 @@ model IssueType {
   icon      String?
   color     String?
 
-  project Project @relation(fields: [projectId], references: [id])
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   issues  Issue[]
 
   @@unique([projectId, name])
@@ -319,7 +319,7 @@ model Issue {
   updatedAt     DateTime @updatedAt @map("updated_at")
   resolvedAt    DateTime? @map("resolved_at")
 
-  project     Project           @relation(fields: [projectId], references: [id])
+  project     Project           @relation(fields: [projectId], references: [id], onDelete: Cascade)
   issueType   IssueType         @relation(fields: [issueTypeId], references: [id])
   epic        Epic?             @relation(fields: [epicId], references: [id])
   sprint      Sprint?           @relation(fields: [sprintId], references: [id])
@@ -349,7 +349,7 @@ model IssueTag {
   name      String
   color     String?
 
-  project Project            @relation(fields: [projectId], references: [id])
+  project Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
   issues  IssueTagRelation[]
 
   @@unique([projectId, name])
@@ -427,7 +427,7 @@ model TestSuite {
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
-  project   Project    @relation(fields: [projectId], references: [id])
+  project   Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
   testCases TestCase[]
   testRuns  TestRun[]
 
@@ -451,7 +451,7 @@ model TestCase {
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   testSuite TestSuite @relation(fields: [testSuiteId], references: [id])
-  project   Project   @relation(fields: [projectId], references: [id])
+  project   Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   author    User      @relation(fields: [authorId], references: [id])
   results   TestResult[]
 
@@ -519,7 +519,7 @@ model Bug {
   updatedAt     DateTime  @updatedAt @map("updated_at")
   resolvedAt    DateTime? @map("resolved_at")
 
-  project    Project         @relation(fields: [projectId], references: [id])
+  project    Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   testResult TestResult?     @relation(fields: [testResultId], references: [id])
   issue      Issue?          @relation(fields: [issueId], references: [id])
   reporter   User            @relation("BugReporter", fields: [reporterId], references: [id])
@@ -561,7 +561,7 @@ model CIPipeline {
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
 
-  project Project        @relation(fields: [projectId], references: [id])
+  project Project        @relation(fields: [projectId], references: [id], onDelete: Cascade)
   runs    PipelineRun[]
 
   @@index([projectId])
@@ -617,7 +617,7 @@ model Webhook {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  project    Project            @relation(fields: [projectId], references: [id])
+  project    Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
   deliveries WebhookDelivery[]
 
   @@index([projectId])
@@ -657,7 +657,7 @@ model ActivityLog {
   createdAt  DateTime @default(now()) @map("created_at")
 
   user    User    @relation(fields: [userId], references: [id])
-  project Project @relation(fields: [projectId], references: [id])
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@index([projectId])
