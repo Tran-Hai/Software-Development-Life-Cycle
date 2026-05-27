@@ -1,182 +1,134 @@
-# SDLC Platform - End-to-End Software Development Lifecycle Management
+# SDLC Platform
 
-A comprehensive Enterprise SaaS platform for managing the complete software development lifecycle, from requirements gathering to CI/CD deployment monitoring.
+End-to-end software development lifecycle management platform.
 
 ## Features
 
-### Phase 1: Foundation & MVP ✅
-- [x] User Authentication (JWT Access/Refresh Tokens)
-- [x] Role-Based Access Control (RBAC)
-- [x] Organization & Project Management
-- [x] Team Member Management
-- [x] Issue Tracking (Tasks, Stories, Bugs)
-- [x] Issue Comments & Activity Log
-- [x] Dashboard & Analytics
-
-### Phase 2: Agile & Collaboration (Coming Soon)
-- [ ] Sprint Planning & Management
-- [ ] Kanban Board (Drag & Drop)
-- [ ] Wiki / Documentation
-- [ ] Real-time Updates (WebSockets)
-- [ ] Notifications System
-
-### Phase 3: Testing & CI/CD (Coming Soon)
-- [ ] Test Suite & Test Case Management
-- [ ] Test Run Execution
-- [ ] Bug/Defect Tracking
-- [ ] CI/CD Pipeline Monitoring
-- [ ] GitHub/GitLab Webhook Integration
+- **Authentication & RBAC** — JWT access/refresh tokens, project-scoped roles (Owner, Admin, Member, Viewer)
+- **Project Management** — Multi-project support with member management
+- **Issue Tracking** — Tasks, stories, bugs, epics with comments and activity log
+- **Kanban Board** — Drag-and-drop issue management
+- **Sprint Planning** — Sprint creation, goal setting, and tracking
+- **Test Management** — Test suites, test cases, test runs
+- **Bug Tracking** — Dedicated bug/defect management
+- **Wiki / Documentation** — Project documentation pages
+- **Real-time Notifications** — WebSocket-powered updates
+- **Global Search** — Cross-project search
+- **Dashboard & Analytics** — Per-project and cross-project stats
+- **Dark Mode** — Light/dark theme toggle
 
 ## Tech Stack
 
 | Layer | Technology |
 |-------|------------|
-| **Frontend** | Next.js 15, React 19, TypeScript, TailwindCSS, TanStack Query |
-| **Backend** | NestJS, TypeScript, Prisma ORM |
-| **Database** | PostgreSQL 16 |
-| **Cache** | Redis 7 |
-| **Storage** | MinIO (S3-compatible) |
-| **Auth** | JWT (Access/Refresh), Argon2 password hashing |
-| **Infrastructure** | Docker Compose |
+| Frontend | Next.js 15, React 19, TypeScript, TailwindCSS, TanStack Query |
+| Backend | NestJS, TypeScript, Prisma ORM |
+| Database | PostgreSQL (Neon Serverless) |
+| Cache | Redis |
+| Storage | MinIO (S3-compatible) |
+| Auth | JWT (Access/Refresh), Argon2 password hashing |
+| Real-time | WebSocket |
 
 ## Architecture
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                        Frontend (Next.js 15)                │
-│  ┌──────────┐  ┌──────────┐  ┌──────────┐  ┌──────────┐   │
-│  │   Auth   │  │Dashboard │  │  Issues  │  │ Projects │   │
-│  └──────────┘  └──────────┘  └──────────┘  └──────────┘   │
+│  Auth  | Dashboard | Issues | Kanban | Sprints | Wiki      │
 └──────────────────────────┬──────────────────────────────────┘
-                           │ HTTP/REST
+                           │ HTTP/REST + WebSocket
 ┌──────────────────────────▼──────────────────────────────────┐
-│                        Backend (NestJS)                     │
-│  ┌──────┐  ┌──────────┐  ┌──────────┐  ┌────────────────┐  │
-│  │ Auth │  │Organizations│ │ Projects │  │    Issues      │  │
-│  │Module│  │  Module   │  │  Module  │  │    Module      │  │
-│  └──────┘  └──────────┘  └──────────┘  └────────────────┘  │
-│  ┌──────────────────────────────────────────────────────┐   │
-│  │              RBAC & Permission Guards                │   │
-│  └──────────────────────────────────────────────────────┘   │
+│                    Backend API (NestJS)                      │
+│  Auth | Users | Organizations | Projects | Members          │
+│  Issues | Sprints | Epics | Test Management | Bugs          │
+│  Documents | Notifications | Search | RBAC | File Upload    │
 └──────────────────────────┬──────────────────────────────────┘
                            │
 ┌──────────────────────────▼──────────────────────────────────┐
-│                   Infrastructure Layer                      │
-│  ┌──────────────┐  ┌──────────┐  ┌──────────────────────┐  │
-│  │  PostgreSQL  │  │  Redis   │  │       MinIO          │  │
-│  │  (Primary)   │  │  (Cache) │  │    (File Storage)    │  │
-│  └──────────────┘  └──────────┘  └──────────────────────┘  │
+│                   Infrastructure Layer                       │
+│  PostgreSQL (Neon)  |  Redis  |  MinIO (S3)                 │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-## Quick Start
+## Getting Started
 
-See [SETUP.md](SETUP.md) for detailed setup instructions.
+### Prerequisites
 
-### TL;DR
+- Node.js >= 20
+- pnpm >= 9
+
+### Setup
 
 ```bash
-# 1. Start infrastructure
-sudo docker compose -f docker/docker-compose.dev.yml up -d
-
-# 2. Install dependencies
+# Install dependencies
 pnpm install
 
-# 3. Setup database
-pnpm db:generate && pnpm db:migrate && pnpm db:seed
+# Generate Prisma client
+pnpm --filter @sdlc/backend run prisma:generate
 
-# 4. Start development servers
+# Push schema to database and seed
+pnpm --filter @sdlc/backend run prisma:push && pnpm --filter @sdlc/backend run prisma:seed
+
+# Start development servers (backend: 3001, frontend: 3000)
 pnpm dev
 ```
 
 ### Demo Credentials
-- **Email:** admin@sdlc.dev
-- **Password:** Admin123!
 
-## API Documentation
-
-### Authentication
-
-```bash
-# Register
-curl -X POST http://localhost:3001/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -d '{"email":"user@example.com","password":"password123","fullName":"John Doe"}'
-
-# Login
-curl -X POST http://localhost:3001/api/v1/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{"email":"admin@sdlc.dev","password":"Admin123!"}'
-```
-
-### Projects
-
-```bash
-# List projects
-curl http://localhost:3001/api/v1/projects \
-  -H "Authorization: Bearer <accessToken>"
-
-# Create issue
-curl -X POST http://localhost:3001/api/v1/projects/<projectId>/issues \
-  -H "Authorization: Bearer <accessToken>" \
-  -H "Content-Type: application/json" \
-  -d '{"title":"New Feature","issueTypeId":"<typeId>","priority":"high"}'
-```
+| Email | Password | Role |
+|-------|----------|------|
+| admin@sdlc.dev | Admin123! | Super Admin |
 
 ## Project Structure
 
 ```
 sdlc-platform/
-├── docker/                          # Docker configuration
-│   └── docker-compose.dev.yml       # Development infrastructure
 ├── packages/
-│   ├── backend/                     # NestJS API
+│   ├── backend/                    # NestJS API
 │   │   ├── src/
-│   │   │   ├── common/              # Cross-cutting concerns
-│   │   │   │   ├── decorators/      # @CurrentUser, @RequiredPermission
-│   │   │   │   ├── guards/          # JWT, RBAC, Project permissions
-│   │   │   │   ├── interceptors/    # Logging, Transform, Timeout
-│   │   │   │   ├── filters/         # Global exception handling
-│   │   │   │   └── pipes/           # Validation
-│   │   │   ├── config/              # Configuration modules
-│   │   │   ├── database/            # Prisma ORM
-│   │   │   │   ├── prisma/          # Schema & service
-│   │   │   │   └── seeds/           # Demo data
-│   │   │   └── modules/             # Feature modules
-│   │   │       ├── auth/            # Authentication & JWT
-│   │   │       ├── users/           # User management
-│   │   │       ├── organizations/   # Organization CRUD
-│   │   │       ├── projects/        # Project CRUD
-│   │   │       ├── members/         # Project membership
-│   │   │       ├── issues/          # Issue tracking
-│   │   │       └── rbac/            # Roles & permissions
+│   │   │   ├── common/             # Guards, interceptors, decorators
+│   │   │   ├── config/             # Database, JWT, Redis config
+│   │   │   ├── database/
+│   │   │   │   ├── prisma/         # Schema, migrations, Prisma service
+│   │   │   │   └── seeds/          # Demo data seeding
+│   │   │   └── modules/
+│   │   │       ├── auth/           # JWT authentication
+│   │   │       ├── users/          # User management
+│   │   │       ├── organizations/  # Organization CRUD
+│   │   │       ├── projects/       # Project CRUD + stats
+│   │   │       ├── members/        # Project membership
+│   │   │       ├── issues/         # Issue tracking
+│   │   │       ├── epics/          # Epic management
+│   │   │       ├── sprints/        # Sprint planning
+│   │   │       ├── bugs/           # Bug/defect tracking
+│   │   │       ├── test-management/ # Test suites, cases, runs
+│   │   │       ├── documents/      # Wiki/documentation
+│   │   │       ├── notifications/  # In-app notifications
+│   │   │       ├── search/         # Global search
+│   │   │       ├── rbac/           # Roles & permissions
+│   │   │       └── file-upload/    # S3 file storage
 │   │   └── ...
-│   └── frontend/                    # Next.js 15 App
+│   └── frontend/                   # Next.js 15
 │       ├── src/
-│       │   ├── app/                 # App Router pages
-│       │   │   ├── (auth)/          # Login, Register
-│       │   │   └── (dashboard)/     # Main app pages
-│       │   ├── components/          # React components
-│       │   │   ├── layout/          # Sidebar, Header
-│       │   │   └── providers.tsx    # Query & Auth providers
-│       │   └── lib/                 # Utilities
-│       │       ├── api-client.ts    # Axios with interceptors
-│       │       └── auth-context.tsx # Auth state management
+│       │   ├── app/                # App Router (auth + dashboard)
+│       │   ├── components/         # UI components + layout
+│       │   └── lib/                # API client, auth, theme context
 │       └── ...
-├── SETUP.md                         # Setup instructions
-└── README.md                        # This file
+└── docker/                         # Docker Compose for local dev
 ```
 
-## Security Features
+## Environment Variables
 
-- **JWT Authentication** with Access (15min) and Refresh (7 days) tokens
-- **Argon2** password hashing (industry standard)
-- **RBAC** with project-scoped roles (Owner, Admin, Member, Viewer)
-- **Rate Limiting** (100 req/min)
-- **Helmet** security headers
-- **CORS** whitelisting
-- **Input Validation** with class-validator
-- **SQL Injection Protection** via Prisma parameterized queries
+Copy `packages/backend/.env.example` to `packages/backend/.env` and configure:
+
+| Variable | Description |
+|----------|-------------|
+| `DATABASE_URL` | PostgreSQL connection string |
+| `JWT_SECRET` | JWT signing secret |
+| `JWT_REFRESH_SECRET` | Refresh token secret |
+| `REDIS_URL` | Redis connection string |
+| `MINIO_*` | S3-compatible storage config |
+| `FRONTEND_URL` | Frontend origin for CORS |
 
 ## License
 
