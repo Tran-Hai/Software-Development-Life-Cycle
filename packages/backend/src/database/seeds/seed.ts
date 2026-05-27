@@ -74,6 +74,7 @@ async function main() {
     'webhook',
     'member',
     'setting',
+    'epic',
   ];
 
   const actions = ['create', 'read', 'update', 'delete', 'manage'];
