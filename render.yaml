@@ -1,8 +1,13 @@
 services:
   - type: web
-    name: sdlc-backend
+    name: sdlc-platform
     env: node
-    buildCommand: corepack enable 2>/dev/null; pnpm install --frozen-lockfile 2>/dev/null || npm install; npx prisma generate --schema=packages/backend/src/database/prisma/schema.prisma; pnpm --filter @sdlc/backend run build
+    buildCommand: |
+      corepack enable 2>/dev/null
+      pnpm install --frozen-lockfile 2>/dev/null || npm install
+      npx prisma generate --schema=packages/backend/src/database/prisma/schema.prisma
+      pnpm --filter @sdlc/backend run build
+      pnpm --filter @sdlc/frontend run build
     startCommand: node packages/backend/dist/main
     healthCheckPath: /api/v1/health
     envVars:
@@ -12,12 +17,16 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
       - key: FRONTEND_URL
-        value: https://sdlc-frontend.onrender.com
+        value: https://sdlc-platform.onrender.com
+      - key: NEXT_PUBLIC_API_URL
+        value: /api/v1
       - key: PORT
         value: 10000
       - key: REDIS_URL
-        value: redis://localhost:6379
+        sync: false
       - key: MINIO_ENDPOINT
         value: ""
       - key: MINIO_ROOT_USER
@@ -28,16 +37,3 @@ services:
         value: sdlc-uploads
       - key: MINIO_USE_SSL
         value: "false"
-
-  - type: web
-    name: sdlc-frontend
-    env: node
-    buildCommand: corepack enable 2>/dev/null; pnpm install --frozen-lockfile 2>/dev/null || npm install; pnpm --filter @sdlc/frontend run build
-    startCommand: cd packages/frontend && node .next/standalone/server.js
-    envVars:
-      - key: NODE_ENV
-        value: production
-      - key: NEXT_PUBLIC_API_URL
-        value: https://sdlc-backend.onrender.com/api/v1
-      - key: PORT
-        value: 3000
