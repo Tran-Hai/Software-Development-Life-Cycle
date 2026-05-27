@@ -3,12 +3,11 @@ services:
     name: sdlc-platform
     env: node
     buildCommand: |
-      corepack enable 2>/dev/null
-      pnpm install --frozen-lockfile 2>/dev/null || npm install
-      pnpm prisma generate --schema=packages/backend/src/database/prisma/schema.prisma
-      pnpm --filter @sdlc/backend run build
-      pnpm --filter @sdlc/frontend run build
-    startCommand: node packages/backend/dist/main
+      cd packages/frontend
+      npm install
+      npx prisma generate
+      npm run build
+    startCommand: cd packages/frontend && npm run start
     healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_ENV
@@ -17,23 +16,5 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
-      - key: JWT_REFRESH_SECRET
-        generateValue: true
-      - key: FRONTEND_URL
-        value: https://sdlc-platform.onrender.com
-      - key: NEXT_PUBLIC_API_URL
-        value: /api/v1
       - key: PORT
         value: 10000
-      - key: REDIS_URL
-        sync: false
-      - key: MINIO_ENDPOINT
-        value: ""
-      - key: MINIO_ROOT_USER
-        value: ""
-      - key: MINIO_ROOT_PASSWORD
-        value: ""
-      - key: MINIO_BUCKET
-        value: sdlc-uploads
-      - key: MINIO_USE_SSL
-        value: "false"

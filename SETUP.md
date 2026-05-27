@@ -3,158 +3,131 @@
 ## Prerequisites
 
 - Node.js >= 20.0.0
-- pnpm >= 9.0.0 (or use corepack)
-- Docker & Docker Compose
+- PostgreSQL 16 (local or Neon)
+- npm
 
 ## Quick Start
 
-### 1. Start Infrastructure
+### 1. Install Dependencies
 
 ```bash
-sudo docker compose -f docker/docker-compose.dev.yml up -d
+cd packages/frontend
+npm install
 ```
 
-This starts:
-- **PostgreSQL 16** on port 5432
-- **Redis 7** on port 6379
-- **MinIO** on port 9000 (console: 9001)
+### 2. Setup Database
 
-### 2. Install Dependencies
+Create a `.env` file:
 
 ```bash
-pnpm install
+cd packages/frontend
+cp .env.example .env
 ```
 
-### 3. Setup Database
+Edit `.env` with your PostgreSQL connection string:
+
+```
+DATABASE_URL="postgresql://user:password@localhost:5432/sdlc_platform"
+JWT_SECRET="your-secret-key-change-in-production"
+```
+
+Then run:
 
 ```bash
-# Generate Prisma client
-pnpm db:generate
-
-# Run migrations
-pnpm db:migrate
-
-# Seed demo data
-pnpm db:seed
+npx prisma generate
+npx prisma migrate dev
 ```
 
-### 4. Start Development Servers
+### 3. Start Dev Server
 
 ```bash
-# Start backend (port 3001)
-pnpm dev:backend
-
-# Start frontend (port 3000) - in another terminal
-pnpm dev:frontend
+npm run dev
 ```
 
-Or start both at once:
+Open `http://localhost:3000`
+
+### Using Neon (Serverless PostgreSQL)
+
+Replace `DATABASE_URL` with your Neon connection string:
+
+```
+DATABASE_URL="postgresql://neondb_owner:...@ep-....aws.neon.tech/neondb?sslmode=require"
+```
+
+Then run:
+
 ```bash
-pnpm dev
-```
-
-## Demo Credentials
-
-After seeding:
-- **Email:** admin@sdlc.dev
-- **Password:** Admin123!
-
-## Project Structure
-
-```
-sdlc-platform/
-├── docker/                    # Docker Compose files
-├── packages/
-│   ├── backend/               # NestJS API (port 3001)
-│   │   ├── src/
-│   │   │   ├── common/        # Guards, interceptors, filters
-│   │   │   ├── config/        # Configuration modules
-│   │   │   ├── database/      # Prisma schema & service
-│   │   │   └── modules/       # Feature modules
-│   │   └── ...
-│   └── frontend/              # Next.js 15 App (port 3000)
-│       ├── src/
-│       │   ├── app/           # App Router pages
-│       │   ├── components/    # React components
-│       │   └── lib/           # API client, auth context
-│       └── ...
-└── ...
+npx prisma db push
+npm run dev
 ```
 
 ## API Endpoints
 
-Base URL: `http://localhost:3001/api/v1`
+All endpoints are served at `/api/v1` on the same origin.
 
 ### Authentication
-- `POST /auth/register` - Register new user
-- `POST /auth/login` - Login
-- `POST /auth/refresh` - Refresh access token
-- `POST /auth/logout` - Logout
-- `GET /auth/me` - Get current user
+- `POST /api/v1/auth/register` — Register new user
+- `POST /api/v1/auth/login` — Login
+- `POST /api/v1/auth/refresh` — Refresh access token
+- `POST /api/v1/auth/logout` — Logout
+- `GET /api/v1/auth/me` — Get current user
 
 ### Organizations
-- `POST /organizations` - Create organization
-- `GET /organizations` - List user's organizations
-- `GET /organizations/:id` - Get organization details
-- `PATCH /organizations/:id` - Update organization
-- `DELETE /organizations/:id` - Delete organization
+- `GET /api/v1/organizations` — List user's organizations
+- `POST /api/v1/organizations` — Create organization
+- `GET /api/v1/organizations/:id` — Get organization details
+- `PATCH /api/v1/organizations/:id` — Update organization
+- `DELETE /api/v1/organizations/:id` — Delete organization
 
 ### Projects
-- `POST /organizations/:orgId/projects` - Create project
-- `GET /projects` - List user's projects
-- `GET /projects/:id` - Get project details
-- `PATCH /projects/:id` - Update project
-- `DELETE /projects/:id` - Delete project
-
-### Members
-- `POST /projects/:id/members` - Add member
-- `GET /projects/:id/members` - List members
-- `PATCH /projects/:id/members/:memberId` - Update member role
-- `DELETE /projects/:id/members/:memberId` - Remove member
+- `GET /api/v1/projects` — List user's projects
+- `POST /api/v1/projects` — Create personal project
+- `POST /api/v1/projects/organizations/:orgId` — Create project in org
+- `GET /api/v1/projects/:id` — Get project details
+- `PATCH /api/v1/projects/:id` — Update project
+- `DELETE /api/v1/projects/:id` — Delete project
 
 ### Issues
-- `GET /projects/:id/issues` - List issues (with filters: status, assigneeId, priority)
-- `POST /projects/:id/issues` - Create issue
-- `GET /issues/:id` - Get issue details
-- `PATCH /issues/:id` - Update issue
-- `DELETE /issues/:id` - Delete issue
-- `GET /issues/:id/comments` - Get comments
-- `POST /issues/:id/comments` - Add comment
-- `GET /issues/:id/activity` - Get activity log
+- `GET /api/v1/projects/:projectId/issues` — List issues
+- `POST /api/v1/projects/:projectId/issues` — Create issue
+- `GET /api/v1/projects/:projectId/issues/:id` — Get issue details
+- `PATCH /api/v1/projects/:projectId/issues/:id` — Update issue
+- `DELETE /api/v1/projects/:projectId/issues/:id` — Delete issue
+- `GET /api/v1/projects/:projectId/issues/:id/comments` — Get comments
+- `POST /api/v1/projects/:projectId/issues/:id/comments` — Add comment
+- `GET /api/v1/projects/:projectId/issues/:id/activity` — Get activity log
 
-## Tech Stack
+### Sprints
+- `GET /api/v1/projects/:projectId/sprints` — List sprints
+- `POST /api/v1/projects/:projectId/sprints` — Create sprint
+- `PATCH /api/v1/projects/:projectId/sprints/:id/status` — Update sprint status
+- `GET /api/v1/projects/:projectId/sprints/:id/burndown` — Get burndown data
 
-### Backend
-- **NestJS** - Progressive Node.js framework
-- **Prisma** - Type-safe ORM
-- **PostgreSQL** - Primary database
-- **Redis** - Caching & message broker
-- **JWT** - Authentication (Access/Refresh tokens)
-- **Argon2** - Password hashing
+### Epics, Documents, Bugs, Test Management
 
-### Frontend
-- **Next.js 15** - React framework with App Router
-- **TypeScript** - Type safety
-- **TailwindCSS** - Utility-first CSS
-- **TanStack Query** - Server state management
-- **Axios** - HTTP client
-- **Lucide React** - Icons
+All follow the same pattern under `/api/v1/projects/:projectId/`.
+
+### Other
+- `POST /api/v1/upload` — File upload
+- `GET /api/v1/search?q=` — Global search
+- `GET /api/v1/notifications` — List notifications
+- `GET /api/v1/roles` — List roles
+- `GET /api/v1/health` — Health check
 
 ## Troubleshooting
 
-### Database connection issues
-```bash
-# Check if PostgreSQL is running
-sudo docker ps
+### Prisma validation error (DATABASE_URL)
 
-# View PostgreSQL logs
-sudo docker logs sdlc-postgres
+```
+Error: Environment variable not found: DATABASE_URL
 ```
 
-### Reset database
-```bash
-sudo docker compose -f docker/docker-compose.dev.yml down -v
-sudo docker compose -f docker/docker-compose.dev.yml up -d
-pnpm db:migrate
-pnpm db:seed
-```
+Create `.env` file in `packages/frontend/` with `DATABASE_URL`.
+
+### Password login fails after migration
+
+Old passwords were hashed with argon2. The new code supports both argon2 and bcryptjs. If login still fails, register a new account.
+
+### Dynamic param conflict
+
+If you see `You cannot use different slug names for the same dynamic path`, ensure all dynamic segments under the same path level use the same param name (e.g., `[projectId]`).

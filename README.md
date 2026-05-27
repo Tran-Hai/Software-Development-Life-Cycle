@@ -1,6 +1,6 @@
 # SDLC Platform
 
-End-to-end software development lifecycle management platform.
+End-to-end software development lifecycle management platform built with Next.js 15 (full-stack).
 
 ## Features
 
@@ -8,11 +8,10 @@ End-to-end software development lifecycle management platform.
 - **Project Management** — Multi-project support with member management
 - **Issue Tracking** — Tasks, stories, bugs, epics with comments and activity log
 - **Kanban Board** — Drag-and-drop issue management
-- **Sprint Planning** — Sprint creation, goal setting, and tracking
+- **Sprint Planning** — Sprint creation, goal setting, burndown tracking
 - **Test Management** — Test suites, test cases, test runs
 - **Bug Tracking** — Dedicated bug/defect management
-- **Wiki / Documentation** — Project documentation pages
-- **Real-time Notifications** — WebSocket-powered updates
+- **Wiki / Documentation** — Project documentation pages with versioning
 - **Global Search** — Cross-project search
 - **Dashboard & Analytics** — Per-project and cross-project stats
 - **Dark Mode** — Light/dark theme toggle
@@ -21,114 +20,68 @@ End-to-end software development lifecycle management platform.
 
 | Layer | Technology |
 |-------|------------|
-| Frontend | Next.js 15, React 19, TypeScript, TailwindCSS, TanStack Query |
-| Backend | NestJS, TypeScript, Prisma ORM |
-| Database | PostgreSQL (Neon Serverless) |
-| Cache | Redis |
-| Storage | MinIO (S3-compatible) |
-| Auth | JWT (Access/Refresh), Argon2 password hashing |
-| Real-time | WebSocket |
+| Framework | Next.js 15 (App Router) |
+| Language | TypeScript |
+| Styling | TailwindCSS, Radix UI |
+| State | TanStack Query, Zustand |
+| Database | PostgreSQL (Neon) |
+| ORM | Prisma 6 |
+| Auth | JWT (Access/Refresh), bcryptjs + argon2 |
+| Storage | Local filesystem (dev) / S3 (prod) |
 
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                        Frontend (Next.js 15)                │
-│  Auth  | Dashboard | Issues | Kanban | Sprints | Wiki      │
-└──────────────────────────┬──────────────────────────────────┘
-                           │ HTTP/REST + WebSocket
-┌──────────────────────────▼──────────────────────────────────┐
-│                    Backend API (NestJS)                      │
-│  Auth | Users | Organizations | Projects | Members          │
-│  Issues | Sprints | Epics | Test Management | Bugs          │
-│  Documents | Notifications | Search | RBAC | File Upload    │
-└──────────────────────────┬──────────────────────────────────┘
-                           │
-┌──────────────────────────▼──────────────────────────────────┐
-│                   Infrastructure Layer                       │
-│  PostgreSQL (Neon)  |  Redis  |  MinIO (S3)                 │
-└─────────────────────────────────────────────────────────────┘
+sdlc-platform/
+├── packages/frontend/          # Next.js 15 full-stack app
+│   ├── src/
+│   │   ├── app/
+│   │   │   ├── api/v1/         # API Route Handlers (46 endpoints)
+│   │   │   ├── (auth)/         # Login, Register pages
+│   │   │   └── (dashboard)/    # All app pages
+│   │   ├── components/         # UI components + layout
+│   │   ├── hooks/              # Custom React hooks
+│   │   ├── lib/                # API client, auth, theme context
+│   │   └── server/             # DB client, auth utils, guards
+│   ├── prisma/                 # Schema + migrations
+│   └── ...
+├── docker/                     # Docker Compose for local dev
+└── render.yaml                 # Render deployment config
 ```
 
-## Getting Started
-
-### Prerequisites
-
-- Node.js >= 20
-- pnpm >= 9
-
-### Setup
+## Quick Start
 
 ```bash
-# Install dependencies
-pnpm install
+# 1. Install dependencies
+cd packages/frontend && npm install
 
-# Generate Prisma client
-pnpm --filter @sdlc/backend run prisma:generate
+# 2. Setup database (PostgreSQL required)
+cp .env.example .env
+# Edit DATABASE_URL in .env
+npx prisma generate
+npx prisma migrate dev
 
-# Push schema to database and seed
-pnpm --filter @sdlc/backend run prisma:push && pnpm --filter @sdlc/backend run prisma:seed
-
-# Start development servers (backend: 3001, frontend: 3000)
-pnpm dev
+# 3. Start dev server
+npm run dev
 ```
 
-### Demo Credentials
+## Deployment
 
-| Email | Password | Role |
-|-------|----------|------|
-| admin@sdlc.dev | Admin123! | Super Admin |
+### Render (single service)
 
-## Project Structure
+The project includes a `render.yaml` for one-click deployment:
 
-```
-sdlc-platform/
-├── packages/
-│   ├── backend/                    # NestJS API
-│   │   ├── src/
-│   │   │   ├── common/             # Guards, interceptors, decorators
-│   │   │   ├── config/             # Database, JWT, Redis config
-│   │   │   ├── database/
-│   │   │   │   ├── prisma/         # Schema, migrations, Prisma service
-│   │   │   │   └── seeds/          # Demo data seeding
-│   │   │   └── modules/
-│   │   │       ├── auth/           # JWT authentication
-│   │   │       ├── users/          # User management
-│   │   │       ├── organizations/  # Organization CRUD
-│   │   │       ├── projects/       # Project CRUD + stats
-│   │   │       ├── members/        # Project membership
-│   │   │       ├── issues/         # Issue tracking
-│   │   │       ├── epics/          # Epic management
-│   │   │       ├── sprints/        # Sprint planning
-│   │   │       ├── bugs/           # Bug/defect tracking
-│   │   │       ├── test-management/ # Test suites, cases, runs
-│   │   │       ├── documents/      # Wiki/documentation
-│   │   │       ├── notifications/  # In-app notifications
-│   │   │       ├── search/         # Global search
-│   │   │       ├── rbac/           # Roles & permissions
-│   │   │       └── file-upload/    # S3 file storage
-│   │   └── ...
-│   └── frontend/                   # Next.js 15
-│       ├── src/
-│       │   ├── app/                # App Router (auth + dashboard)
-│       │   ├── components/         # UI components + layout
-│       │   └── lib/                # API client, auth, theme context
-│       └── ...
-└── docker/                         # Docker Compose for local dev
-```
+1. Connect your GitHub repo to Render
+2. Use the Blueprint: `render.yaml`
+3. Set `DATABASE_URL` as environment variable (Neon PostgreSQL)
+4. Deploy
 
 ## Environment Variables
-
-Copy `packages/backend/.env.example` to `packages/backend/.env` and configure:
 
 | Variable | Description |
 |----------|-------------|
 | `DATABASE_URL` | PostgreSQL connection string |
 | `JWT_SECRET` | JWT signing secret |
-| `JWT_REFRESH_SECRET` | Refresh token secret |
-| `REDIS_URL` | Redis connection string |
-| `MINIO_*` | S3-compatible storage config |
-| `FRONTEND_URL` | Frontend origin for CORS |
 
 ## License
 

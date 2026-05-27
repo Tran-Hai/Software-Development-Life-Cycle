@@ -2,15 +2,15 @@
   "name": "sdlc-platform",
   "private": true,
   "scripts": {
-    "dev": "pnpm --filter @sdlc/backend run dev & pnpm --filter @sdlc/frontend run dev",
-    "dev:backend": "pnpm --filter @sdlc/backend run dev",
-    "dev:frontend": "pnpm --filter @sdlc/frontend run dev",
-    "docker:up": "docker compose -f docker/docker-compose.dev.yml up -d",
-    "docker:down": "docker compose -f docker/docker-compose.dev.yml down",
-    "db:migrate": "cd packages/backend && npx prisma migrate dev --schema=./src/database/prisma/schema.prisma",
-    "db:generate": "cd packages/backend && npx prisma generate --schema=./src/database/prisma/schema.prisma",
-    "db:seed": "cd packages/backend && npx prisma db seed --schema=./src/database/prisma/schema.prisma",
-    "db:studio": "cd packages/backend && npx prisma studio --schema=./src/database/prisma/schema.prisma"
+    "dev": "cd packages/frontend && npm run dev",
+    "build": "cd packages/frontend && npm run build",
+    "start": "cd packages/frontend && npm run start",
+    "lint": "cd packages/frontend && npm run lint",
+    "typecheck": "cd packages/frontend && npm run typecheck",
+    "prisma:generate": "cd packages/frontend && npx prisma generate",
+    "prisma:migrate": "cd packages/frontend && npx prisma migrate dev",
+    "prisma:studio": "cd packages/frontend && npx prisma studio",
+    "db:seed": "cd packages/frontend && npx prisma db seed"
   },
   "engines": {
     "node": ">=20.0.0"
