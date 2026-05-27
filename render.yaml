@@ -2,12 +2,12 @@ services:
   - type: web
     name: sdlc-platform
     env: node
-    buildCommand: |
-      cd packages/frontend
-      npm install
-      npx prisma generate
-      npm run build
-    startCommand: cd packages/frontend && npm run start
+    region: singapore
+    repo: https://github.com/Tran-Hai/Software-Development-Life-Cycle
+    branch: main
+    rootDir: packages/frontend
+    buildCommand: npm install && npx prisma generate && npm run build
+    startCommand: npm run start
     healthCheckPath: /api/v1/health
     envVars:
       - key: NODE_ENV
@@ -16,5 +16,3 @@ services:
         sync: false
       - key: JWT_SECRET
         generateValue: true
-      - key: PORT
-        value: 10000
