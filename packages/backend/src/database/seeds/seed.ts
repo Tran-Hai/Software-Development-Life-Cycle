@@ -92,71 +92,65 @@ async function main() {
 
   console.log('✅ Permissions created');
 
-  // Assign all permissions to super_admin and owner
+  // Assign permissions
   const allPermissions = await prisma.permission.findMany();
-  const allPermissionIds = allPermissions.map((p) => ({
-    roleId: superAdminRole.id,
-    permissionId: p.id,
-  }));
 
+  // super_admin: ALL permissions
   await prisma.rolePermission.createMany({
-    data: allPermissionIds,
+    data: allPermissions.map((p) => ({
+      roleId: superAdminRole.id,
+      permissionId: p.id,
+    })),
     skipDuplicates: true,
   });
 
-  // Owner gets all except delete project (handled separately)
-  const ownerPermissions = allPermissions.filter(
-    (p) => !(p.resource === 'project' && p.action === 'delete'),
-  );
-
+  // owner: ALL permissions (full control including project:delete)
   await prisma.rolePermission.createMany({
-    data: ownerPermissions.map((p) => ({
+    data: allPermissions.map((p) => ({
       roleId: projectOwnerRole.id,
       permissionId: p.id,
     })),
     skipDuplicates: true,
   });
 
-  // Admin permissions
-  const adminPermissions = allPermissions.filter(
-    (p) =>
-      !(p.resource === 'setting' && p.action === 'manage') &&
-      !(p.resource === 'member' && p.action === 'manage'),
-  );
+  // admin: ALL except project:delete, member:create, member:delete, setting:*
+  const adminDeny = (p: { resource: string; action: string }) =>
+    (p.resource === 'project' && p.action === 'delete') ||
+    (p.resource === 'member' && (p.action === 'create' || p.action === 'delete')) ||
+    (p.resource === 'setting');
 
   await prisma.rolePermission.createMany({
-    data: adminPermissions.map((p) => ({
+    data: allPermissions.filter((p) => !adminDeny(p)).map((p) => ({
       roleId: projectAdminRole.id,
       permissionId: p.id,
     })),
     skipDuplicates: true,
   });
 
-  // Member permissions
-  const memberPermissions = allPermissions.filter(
-    (p) =>
-      (p.resource === 'issue' && ['create', 'read', 'update'].includes(p.action)) ||
-      (p.resource === 'sprint' && p.action === 'read') ||
-      (p.resource === 'document' && ['create', 'read', 'update'].includes(p.action)) ||
-      (p.resource === 'test_case' && ['create', 'read', 'update'].includes(p.action)) ||
-      (p.resource === 'test_run' && ['create', 'read', 'update'].includes(p.action)) ||
-      (p.resource === 'bug' && ['create', 'read', 'update'].includes(p.action)) ||
-      (p.resource === 'pipeline' && p.action === 'read'),
-  );
+  // member: create/read/update on most resources, read-only on sprints/pipelines
+  const memberAllow = (p: { resource: string; action: string }) =>
+    (p.resource === 'issue' && ['create', 'read', 'update'].includes(p.action)) ||
+    (p.resource === 'bug' && ['create', 'read', 'update'].includes(p.action)) ||
+    (p.resource === 'document' && ['create', 'read', 'update'].includes(p.action)) ||
+    (p.resource === 'test_case' && ['create', 'read', 'update'].includes(p.action)) ||
+    (p.resource === 'test_run' && ['create', 'read', 'update'].includes(p.action)) ||
+    (p.resource === 'sprint' && p.action === 'read') ||
+    (p.resource === 'epic' && p.action === 'read') ||
+    (p.resource === 'pipeline' && p.action === 'read') ||
+    (p.resource === 'project' && p.action === 'read') ||
+    (p.resource === 'member' && p.action === 'read');
 
   await prisma.rolePermission.createMany({
-    data: memberPermissions.map((p) => ({
+    data: allPermissions.filter(memberAllow).map((p) => ({
       roleId: projectMemberRole.id,
       permissionId: p.id,
     })),
     skipDuplicates: true,
   });
 
-  // Viewer permissions
-  const viewerPermissions = allPermissions.filter((p) => p.action === 'read');
-
+  // viewer: read-only on all resources
   await prisma.rolePermission.createMany({
-    data: viewerPermissions.map((p) => ({
+    data: allPermissions.filter((p) => p.action === 'read').map((p) => ({
       roleId: projectViewerRole.id,
       permissionId: p.id,
     })),

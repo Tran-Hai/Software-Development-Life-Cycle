@@ -11,6 +11,7 @@ import {
 import { ProjectsService } from './projects.service';
 import { CreateProjectDto, UpdateProjectDto } from './dto/project.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { RequireProjectPermission } from '../../common/decorators/require-project-permission.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @Controller('projects')
@@ -41,11 +42,13 @@ export class ProjectsController {
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string, @CurrentUser() user: any) {
-    return this.projectsService.findOne(id, user.id);
+  @RequireProjectPermission('project', 'read')
+  async findOne(@Param('id') id: string) {
+    return this.projectsService.findOne(id, id);
   }
 
   @Patch(':id')
+  @RequireProjectPermission('project', 'update')
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateProjectDto,
@@ -55,6 +58,7 @@ export class ProjectsController {
   }
 
   @Delete(':id')
+  @RequireProjectPermission('project', 'delete')
   async delete(@Param('id') id: string, @CurrentUser() user: any) {
     return this.projectsService.delete(id, user.id);
   }

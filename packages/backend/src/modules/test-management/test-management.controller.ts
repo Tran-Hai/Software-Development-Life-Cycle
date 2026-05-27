@@ -20,19 +20,23 @@ import {
   CreateTestResultDto,
 } from './dto/test-management.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { ProjectPermissionGuard } from '../../common/guards/project-permission.guard';
+import { RequiredPermission } from '../../common/decorators/required-permission.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @Controller('projects/:projectId/test-suites')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ProjectPermissionGuard)
 export class TestSuitesController {
   constructor(private testManagementService: TestManagementService) {}
 
   @Get()
+  @RequiredPermission('test_case', 'read')
   async findAll(@Param('projectId') projectId: string) {
     return this.testManagementService.findAllSuites(projectId);
   }
 
   @Post()
+  @RequiredPermission('test_case', 'create')
   async create(
     @Param('projectId') projectId: string,
     @Body() dto: CreateTestSuiteDto,
@@ -41,27 +45,31 @@ export class TestSuitesController {
   }
 
   @Get(':id')
+  @RequiredPermission('test_case', 'read')
   async findOne(@Param('id') id: string) {
     return this.testManagementService.findSuite(id);
   }
 
   @Patch(':id')
+  @RequiredPermission('test_case', 'update')
   async update(@Param('id') id: string, @Body() dto: UpdateTestSuiteDto) {
     return this.testManagementService.updateSuite(id, dto);
   }
 
   @Delete(':id')
+  @RequiredPermission('test_case', 'delete')
   async delete(@Param('id') id: string) {
     return this.testManagementService.deleteSuite(id);
   }
 }
 
 @Controller('projects/:projectId/test-cases')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ProjectPermissionGuard)
 export class TestCasesController {
   constructor(private testManagementService: TestManagementService) {}
 
   @Get()
+  @RequiredPermission('test_case', 'read')
   async findAll(
     @Param('projectId') projectId: string,
     @Query('suiteId') suiteId?: string,
@@ -70,6 +78,7 @@ export class TestCasesController {
   }
 
   @Post()
+  @RequiredPermission('test_case', 'create')
   async create(
     @Param('projectId') projectId: string,
     @Query('suiteId') suiteId: string,
@@ -80,16 +89,19 @@ export class TestCasesController {
   }
 
   @Get(':id')
+  @RequiredPermission('test_case', 'read')
   async findOne(@Param('id') id: string) {
     return this.testManagementService.findCase(id);
   }
 
   @Patch(':id')
+  @RequiredPermission('test_case', 'update')
   async update(@Param('id') id: string, @Body() dto: UpdateTestCaseDto) {
     return this.testManagementService.updateCase(id, dto);
   }
 
   @Delete(':id')
+  @RequiredPermission('test_case', 'delete')
   async delete(@Param('id') id: string) {
     return this.testManagementService.deleteCase(id);
   }
@@ -135,11 +147,12 @@ export class TestRunsController {
 }
 
 @Controller('projects/:projectId/test-runs')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ProjectPermissionGuard)
 export class TestProjectRunsController {
   constructor(private testManagementService: TestManagementService) {}
 
   @Get()
+  @RequiredPermission('test_run', 'read')
   async findAll(
     @Param('projectId') projectId: string,
     @Query('suiteId') suiteId?: string,

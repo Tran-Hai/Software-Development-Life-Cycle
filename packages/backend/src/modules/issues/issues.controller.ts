@@ -16,14 +16,17 @@ import {
   CreateIssueCommentDto,
 } from './dto/issue.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { ProjectPermissionGuard } from '../../common/guards/project-permission.guard';
+import { RequiredPermission } from '../../common/decorators/required-permission.decorator';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
 @Controller('projects/:projectId/issues')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ProjectPermissionGuard)
 export class IssuesController {
   constructor(private issuesService: IssuesService) {}
 
   @Get()
+  @RequiredPermission('issue', 'read')
   async findAll(
     @Param('projectId') projectId: string,
     @Query('status') status?: string,
@@ -34,6 +37,7 @@ export class IssuesController {
   }
 
   @Post()
+  @RequiredPermission('issue', 'create')
   async create(
     @Param('projectId') projectId: string,
     @Body() dto: CreateIssueDto,
@@ -43,11 +47,13 @@ export class IssuesController {
   }
 
   @Get(':id')
+  @RequiredPermission('issue', 'read')
   async findOne(@Param('id') id: string) {
     return this.issuesService.findOne(id);
   }
 
   @Patch(':id')
+  @RequiredPermission('issue', 'update')
   async update(
     @Param('id') id: string,
     @Body() dto: UpdateIssueDto,
@@ -57,16 +63,19 @@ export class IssuesController {
   }
 
   @Delete(':id')
+  @RequiredPermission('issue', 'delete')
   async delete(@Param('id') id: string) {
     return this.issuesService.delete(id);
   }
 
   @Get(':id/comments')
+  @RequiredPermission('issue', 'read')
   async getComments(@Param('id') id: string) {
     return this.issuesService.getComments(id);
   }
 
   @Post(':id/comments')
+  @RequiredPermission('issue', 'update')
   async addComment(
     @Param('id') id: string,
     @Body() dto: CreateIssueCommentDto,
@@ -76,6 +85,7 @@ export class IssuesController {
   }
 
   @Get(':id/activity')
+  @RequiredPermission('issue', 'read')
   async getActivity(@Param('id') id: string) {
     return this.issuesService.getActivity(id);
   }

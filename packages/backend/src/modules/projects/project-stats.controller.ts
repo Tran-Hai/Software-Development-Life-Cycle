@@ -1,13 +1,16 @@
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma/prisma.service';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { ProjectPermissionGuard } from '../../common/guards/project-permission.guard';
+import { RequiredPermission } from '../../common/decorators/required-permission.decorator';
 
 @Controller('projects/:projectId/stats')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, ProjectPermissionGuard)
 export class ProjectStatsController {
   constructor(private prisma: PrismaService) {}
 
   @Get()
+  @RequiredPermission('project', 'read')
   async getStats(@Param('projectId') projectId: string) {
     const [
       totalIssues,
